@@ -32,6 +32,31 @@ test('buttonParamsJson rusak ditandai', () => {
     assert.equal(r.flagged, true)
 })
 
+test('koordinat lokasi tak valid ditandai', () => {
+    assert.equal(detectBug({ locationMessage: { degreesLatitude: NaN, degreesLongitude: 106 } }).flagged, true)
+    assert.equal(detectBug({ liveLocationMessage: { degreesLatitude: 9999, degreesLongitude: 0 } }).flagged, true)
+    assert.equal(detectBug({ locationMessage: { degreesLatitude: -6.2, degreesLongitude: 106.8 } }).flagged, false)
+})
+
+test('AIRich submessages berlebih ditandai', () => {
+    const big = { aiRichResponseMessage: { submessages: Array(1000).fill(0).map((_, i) => ({ text: 'x' + i })) } }
+    assert.equal(detectBug(big).flagged, true)
+    assert.equal(detectBug({ aiRichResponseMessage: { submessages: [{ text: 'hai' }] } }).flagged, false)
+})
+
+test('poll & contacts berlebih ditandai', () => {
+    assert.equal(detectBug({ pollCreationMessageV3: { name: 'q', options: Array(2000).fill(0).map((_, i) => ({ optionName: 'x' + i })) } }).flagged, true)
+    assert.equal(detectBug({ contactsArrayMessage: { contacts: Array(5000).fill(0).map((_, i) => ({ vcard: 'x' + i })) } }).flagged, true)
+})
+
+test('cycle sejati ditandai, shared-ref tidak', () => {
+    const cyc = { conversation: 'a' }
+    cyc.self = cyc
+    assert.equal(detectBug(cyc).flagged, true)
+    const ci = { mentionedJid: ['1@s.whatsapp.net'] }
+    assert.equal(detectBug({ extendedTextMessage: { text: 'a', contextInfo: ci }, x: ci }).flagged, false)
+})
+
 test('guard menghapus pesan masuk yang bug', async () => {
     let deleted = null
     let blocked = null

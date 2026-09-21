@@ -63,9 +63,15 @@ if (flagged) console.log('bug:', reasons)
 - **Bom mention** (`mentionedJid` / `groupMentions` sangat banyak)
 - `nativeFlowMessage` / `listMessage` / `carouselMessage` dengan tombol/section/row/card berlebih
 - `buttonParamsJson` **rusak** atau raksasa
+- **AIRich** (`aiRichResponseMessage`) dengan submessages / content items berlebih
+- **location / liveLocation** dengan koordinat **tak valid** (NaN/Infinity/di luar rentang lat±90 lng±180)
+- **poll** dengan opsi berlebih, **contacts array** berlebih
+- **Angka tak-hingga** (NaN/Infinity) di field mana pun
 - **Nesting pembungkus** terlalu dalam (viewOnce/ephemeral/deviceSent/edited)
-- Struktur terlalu dalam / jumlah node berlebih / **circular**
+- Struktur terlalu dalam / jumlah node berlebih / **circular** (cycle sejati)
 - Ukuran encode protobuf melebihi batas (bila `proto` dilewatkan)
+
+Walk generik memindai **setiap** field di **semua** tipe message (flood karakter, ukuran, nesting, angka), jadi tipe apa pun tercakup untuk vektor tersebut; cek di atas menambah batas struktural per-tipe.
 
 ## Catatan
 
