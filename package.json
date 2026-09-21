@@ -1,0 +1,40 @@
+{
+  "name": "@rexxhayanasi/elaina-antibug",
+  "version": "1.0.0",
+  "description": "Anti force-close guard for WhatsApp (Baileys). Detects crash/force-close payloads on incoming and outgoing messages, auto-deletes them, and can block the sender.",
+  "main": "index.js",
+  "type": "module",
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test \"test/*.test.js\""
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "whatsapp",
+    "baileys",
+    "anti-bug",
+    "anti-crash",
+    "force-close",
+    "guard",
+    "bot",
+    "elaina"
+  ],
+  "author": "rexxhayanasi",
+  "license": "MIT",
+  "peerDependencies": {
+    "@rexxhayanasi/elaina-baileys": "*"
+  },
+  "peerDependenciesMeta": {
+    "@rexxhayanasi/elaina-baileys": {
+      "optional": true
+    }
+  }
+}
