@@ -1,4 +1,6 @@
-# @rexxhayanasi/elaina-antibug
+# Elaina AnchorGuard
+
+`@rexxhayanasi/elaina-anchorguard`
 
 Guard **anti force-close** untuk WhatsApp (Baileys). Mendeteksi payload yang membuat aplikasi WhatsApp crash/force-close, lalu **auto-hapus** pesannya dan opsional **blok** pengirim. Menjaga pesan **masuk** maupun **keluar**.
 
@@ -7,13 +9,13 @@ Guard **anti force-close** untuk WhatsApp (Baileys). Mendeteksi payload yang mem
 ## Pasang
 
 ```bash
-npm install @rexxhayanasi/elaina-antibug
+npm install @rexxhayanasi/elaina-anchorguard
 ```
 
 ## Pakai
 
 ```js
-import { createAntiBugGuard } from '@rexxhayanasi/elaina-antibug'
+import { createAntiBugGuard } from '@rexxhayanasi/elaina-anchorguard'
 
 const guard = createAntiBugGuard(sock, {
   autoDelete: true,
@@ -48,7 +50,7 @@ Panggil setelah socket dibuat. `guard.stop()` melepas hook.
 ## Deteksi manual
 
 ```js
-import { detectBug } from '@rexxhayanasi/elaina-antibug'
+import { detectBug } from '@rexxhayanasi/elaina-anchorguard'
 
 const { flagged, reasons } = detectBug(msg.message)
 if (flagged) console.log('bug:', reasons)

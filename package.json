@@ -1,9 +1,17 @@
 {
-  "name": "@rexxhayanasi/elaina-antibug",
+  "name": "@rexxhayanasi/elaina-anchorguard",
   "version": "1.0.0",
-  "description": "Anti force-close guard for WhatsApp (Baileys). Detects crash/force-close payloads on incoming and outgoing messages, auto-deletes them, and can block the sender.",
+  "description": "Elaina AnchorGuard — anti force-close guard for WhatsApp (Baileys). Detects crash/force-close payloads on incoming and outgoing messages, auto-deletes them, and can block the sender.",
   "main": "index.js",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rexxzyid/elaina-anchorguard.git"
+  },
+  "homepage": "https://github.com/rexxzyid/elaina-anchorguard#readme",
+  "bugs": {
+    "url": "https://github.com/rexxzyid/elaina-anchorguard/issues"
+  },
   "exports": {
     ".": "./index.js"
   },
@@ -20,6 +28,7 @@
   "keywords": [
     "whatsapp",
     "baileys",
+    "anchorguard",
     "anti-bug",
     "anti-crash",
     "force-close",
