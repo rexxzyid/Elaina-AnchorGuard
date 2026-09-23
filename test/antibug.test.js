@@ -98,16 +98,37 @@ test('circuit-breaker: burst 2x memicu blokir + kick', async () => {
         groupParticipantsUpdate: async (j, p, a) => { if (a === 'remove') kicked.push(...p) },
         groupLeave: async () => {}
     }
-    createAntiBugGuard(mock, { kickOnBurst: true, burstThreshold: 2 })
+    createAntiBugGuard(mock, { burstThreshold: 2 })
     const gjid = '120363x@g.us'
     const atk = '628spam@s.whatsapp.net'
     const mk = () => ({ messages: [{ key: { remoteJid: gjid, participant: atk, fromMe: false, id: Math.random().toString() }, message: { conversation: 'x\u0000\u0000' } }] })
     await mock.ev.h['messages.upsert'](mk())
-    assert.equal(blocked.length, 0)
     await mock.ev.h['messages.upsert'](mk())
-    assert.deepEqual(blocked, [atk])
+    assert.ok(blocked.includes(atk))
     assert.deepEqual(kicked, [atk])
-    assert.ok(deleted >= 2)
+    assert.ok(deleted >= 1)
+})
+
+test('grup + bot admin: revoke untuk semua + kick + blokir', async () => {
+    const blocked = []
+    const kicked = []
+    let revoked = 0
+    const atk = '628atk@s.whatsapp.net'
+    const gjid = '120363y@g.us'
+    const mock = {
+        user: { id: '62me@s.whatsapp.net' },
+        ev: { h: {}, on(e, f) { this.h[e] = f }, off() {} },
+        sendMessage: async (j, c) => { if (c?.delete) revoked++ },
+        chatModify: async () => {},
+        updateBlockStatus: async (j) => { blocked.push(j) },
+        groupParticipantsUpdate: async (j, p, a) => { if (a === 'remove') kicked.push(...p) },
+        groupMetadata: async () => ({ participants: [{ id: '62me@s.whatsapp.net', admin: 'admin' }, { id: atk }] })
+    }
+    createAntiBugGuard(mock, {})
+    await mock.ev.h['messages.upsert']({ messages: [{ key: { remoteJid: gjid, participant: atk, fromMe: false, id: 'a' }, message: { conversation: 'x\u0000' } }] })
+    assert.ok(revoked >= 1)
+    assert.deepEqual(kicked, [atk])
+    assert.ok(blocked.includes(atk))
 })
 
 test('group guard: nomor Meta AI yang di-add ke grup di-kick', async () => {

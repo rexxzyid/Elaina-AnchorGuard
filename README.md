@@ -19,11 +19,11 @@ import { createAntiBugGuard } from '@rexxhayanasi/elaina-anchorguard'
 
 const guard = createAntiBugGuard(sock, {
   autoDelete: true,
-  deleteMode: 'auto',
   guardIncoming: true,
   guardOutgoing: true,
-  blockOnBug: false,
-  selfOnly: false,
+  blockOnBug: true,
+  revokeForEveryoneIfAdmin: true,
+  kickOnBug: true,
   onDetect: ({ direction, jid, sender, reasons }) => {
     console.log('[antibug]', direction, jid, sender, reasons)
   }
@@ -32,20 +32,27 @@ const guard = createAntiBugGuard(sock, {
 
 Panggil setelah socket dibuat. `guard.stop()` melepas hook.
 
+## Respons saat pesan crash terdeteksi
+
+- **Di grup dan bot admin** → **hapus untuk semua** (`protocolMessage` REVOKE) + **kick** pengirim + **blokir** pengirim.
+- **Kena di chat sendiri / DM, atau bot bukan admin** → **delete-for-me** (bersihkan dari chat kita) + **blokir** pengirim.
+- Pesan dari kita sendiri (`fromMe`) → di-revoke, tanpa blokir.
+
 ## Opsi
 
 | Opsi | Default | Arti |
 |---|---|---|
 | `autoDelete` | `true` | Hapus otomatis pesan yang terdeteksi bug |
-| `deleteMode` | `'auto'` | `'auto'` = revoke bila dari kita, delete-for-me bila dari orang lain. `'everyone'` = selalu revoke. `'me'` = selalu delete-for-me |
+| `revokeForEveryoneIfAdmin` | `true` | Di grup, kalau bot admin, hapus untuk semua (revoke). Kalau tidak, delete-for-me |
+| `kickOnBug` | `true` | Kick pengirim dari grup saat pesan crash (butuh bot admin) |
+| `blockOnBug` | `true` | Blokir pengirim saat pesan crash (bukan dari kita) |
+| `groupMetadata` | `null` | Fungsi `async (jid) => metadata` untuk cek admin dari cache-mu (hemat kueri) |
 | `guardIncoming` | `true` | Pindai pesan masuk (`messages.upsert`) |
 | `guardOutgoing` | `true` | Sanitize pesan keluar (membungkus `sock.sendMessage`; melempar error bila payload berbahaya) |
-| `blockOnBug` | `false` | Blok pengirim (`updateBlockStatus`) saat pesan bug diterima (bukan dari kita) |
 | `selfOnly` | `false` | Hanya jaga chat nomor sendiri |
 | `burstThreshold` | `2` | Jumlah pesan bug dari pengirim sama (dalam `burstWindowMs`) untuk memicu eskalasi |
 | `burstWindowMs` | `60000` | Jendela waktu penghitungan burst |
-| `kickOnBurst` | `true` | Saat eskalasi di grup, keluarkan pengirim (butuh bot admin) |
-| `leaveGroupOnBurst` | `false` | Kalau kick gagal (bot bukan admin), keluar dari grup |
+| `leaveGroupOnBurst` | `false` | Kalau kick gagal berulang (bot bukan admin) saat burst, keluar dari grup |
 | `cooldownMs` | `15000` | Redam log/callback berulang dari chat yang sama saat burst |
 | `guardGroupAdds` | `true` | Pantau `group-participants.update` (aksi add) |
 | `autoKickBadAdds` | `true` | Kick otomatis nomor berbahaya yang di-add ke grup (butuh bot admin) |

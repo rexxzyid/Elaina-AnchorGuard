@@ -286,17 +286,19 @@ export const createAntiBugGuard = (sock, options = {}) => {
         deleteMode: 'auto',
         guardIncoming: true,
         guardOutgoing: true,
-        blockOnBug: false,
+        blockOnBug: true,
         selfOnly: false,
+        revokeForEveryoneIfAdmin: true,
+        kickOnBug: true,
+        leaveGroupOnBurst: false,
         burstThreshold: 2,
         burstWindowMs: 60000,
-        kickOnBurst: true,
-        leaveGroupOnBurst: false,
         cooldownMs: 15000,
         guardGroupAdds: true,
         autoKickBadAdds: true,
         metaAiNumbers: true,
         addWatchlist: [],
+        groupMetadata: null,
         thresholds: {},
         onDetect: null,
         proto: null,
@@ -304,39 +306,105 @@ export const createAntiBugGuard = (sock, options = {}) => {
         ...options
     };
     const ownJid = config.ownJid || sock?.user?.id;
+    const ownNumbers = [sock?.user?.id, sock?.user?.lid, config.ownJid].filter(Boolean);
     const detectOptions = { ...config.thresholds, proto: config.proto };
     const flaggedBySender = new Map();
     const chatCooldown = new Map();
     const escalated = new Set();
+    const adminCache = new Map();
     const isGroupJid = (j) => typeof j === 'string' && j.endsWith('@g.us');
-
-    const removeMessage = async (jid, key) => {
-        if (!config.autoDelete) {
-            return;
+    const numberOf = (jid) => String(jid || '').split('@')[0].split(':')[0];
+    const isBotAdmin = async (groupJid) => {
+        const cached = adminCache.get(groupJid);
+        if (cached && Date.now() - cached.ts < 300000) {
+            return cached.admin;
         }
-        const revoke = config.deleteMode === 'everyone' || (config.deleteMode === 'auto' && key?.fromMe);
+        let admin = false;
         try {
-            if (revoke) {
-                await sock.sendMessage(jid, { delete: key });
-            }
-            else if (typeof sock.chatModify === 'function') {
-                await sock.chatModify({ deleteForMe: { key, timestamp: Date.now(), deleteMedia: false } }, jid);
-            }
+            const meta = typeof config.groupMetadata === 'function'
+                ? await config.groupMetadata(groupJid)
+                : (typeof sock.groupMetadata === 'function' ? await sock.groupMetadata(groupJid) : null);
+            const mine = ownNumbers.map(numberOf);
+            const me = meta?.participants?.find((p) => mine.includes(numberOf(p.id)) || mine.includes(numberOf(p.jid)));
+            admin = !!(me && (me.admin === 'admin' || me.admin === 'superadmin'));
         }
         catch (error) {
-            config.logger?.warn?.({ error: error.message }, 'anti-bug delete failed');
+            config.logger?.warn?.({ error: error.message }, 'anti-bug admin check failed');
+        }
+        adminCache.set(groupJid, { admin, ts: Date.now() });
+        return admin;
+    };
+
+    const revokeForEveryone = async (jid, key) => {
+        try {
+            await sock.sendMessage(jid, { delete: key });
+        }
+        catch (error) {
+            config.logger?.warn?.({ error: error.message }, 'anti-bug revoke failed');
         }
     };
 
-    const maybeBlock = async (jid, key) => {
-        if (!config.blockOnBug || key?.fromMe || typeof sock.updateBlockStatus !== 'function') {
+    const deleteForMe = async (jid, key) => {
+        if (typeof sock.chatModify !== 'function') {
             return;
         }
         try {
-            await sock.updateBlockStatus(jid, 'block');
+            await sock.chatModify({ deleteForMe: { key, timestamp: Date.now(), deleteMedia: false } }, jid);
+        }
+        catch (error) {
+            config.logger?.warn?.({ error: error.message }, 'anti-bug delete-for-me failed');
+        }
+    };
+
+    const kickParticipant = async (jid, participant) => {
+        if (typeof sock.groupParticipantsUpdate !== 'function') {
+            return false;
+        }
+        try {
+            await sock.groupParticipantsUpdate(jid, [participant], 'remove');
+            return true;
+        }
+        catch (error) {
+            config.logger?.warn?.({ error: error.message }, 'anti-bug kick failed');
+            return false;
+        }
+    };
+
+    const blockSender = async (sender) => {
+        if (!sender || typeof sock.updateBlockStatus !== 'function') {
+            return;
+        }
+        try {
+            await sock.updateBlockStatus(sender, 'block');
         }
         catch (error) {
             config.logger?.warn?.({ error: error.message }, 'anti-bug block failed');
+        }
+    };
+
+    const respondToThreat = async (jid, key, sender) => {
+        if (config.autoDelete) {
+            if (isGroupJid(jid)) {
+                const admin = config.revokeForEveryoneIfAdmin && await isBotAdmin(jid);
+                if (admin) {
+                    await revokeForEveryone(jid, key);
+                    if (config.kickOnBug && !key?.fromMe) {
+                        await kickParticipant(jid, sender);
+                    }
+                }
+                else {
+                    await deleteForMe(jid, key);
+                }
+            }
+            else if (key?.fromMe) {
+                await revokeForEveryone(jid, key);
+            }
+            else {
+                await deleteForMe(jid, key);
+            }
+        }
+        if (config.blockOnBug && !key?.fromMe) {
+            await blockSender(sender);
         }
     };
 
@@ -346,25 +414,9 @@ export const createAntiBugGuard = (sock, options = {}) => {
         }
         escalated.add(sender);
         config.logger?.warn?.({ sender, jid }, 'anti-bug burst escalation');
-        if (typeof sock.updateBlockStatus === 'function') {
-            try {
-                await sock.updateBlockStatus(sender, 'block');
-            }
-            catch (error) {
-                config.logger?.warn?.({ error: error.message }, 'anti-bug escalate block failed');
-            }
-        }
+        await blockSender(sender);
         if (isGroupJid(jid)) {
-            let removed = false;
-            if (config.kickOnBurst && typeof sock.groupParticipantsUpdate === 'function') {
-                try {
-                    await sock.groupParticipantsUpdate(jid, [sender], 'remove');
-                    removed = true;
-                }
-                catch (error) {
-                    config.logger?.warn?.({ error: error.message }, 'anti-bug kick failed');
-                }
-            }
+            const removed = config.kickOnBug ? await kickParticipant(jid, sender) : false;
             if (!removed && config.leaveGroupOnBurst && typeof sock.groupLeave === 'function') {
                 try {
                     await sock.groupLeave(jid);
@@ -385,7 +437,6 @@ export const createAntiBugGuard = (sock, options = {}) => {
         return history.length;
     };
 
-    const numberOf = (jid) => String(jid || '').split('@')[0].split(':')[0];
     const isBadAdd = (jid) => {
         const num = numberOf(jid);
         if (!num) {
@@ -445,8 +496,7 @@ export const createAntiBugGuard = (sock, options = {}) => {
                 config.logger?.warn?.({ jid, sender, reasons: result.reasons }, 'anti-bug flagged incoming message');
                 await config.onDetect?.({ direction: 'incoming', message: msg, jid, sender, reasons: result.reasons });
             }
-            await removeMessage(jid, msg.key);
-            await maybeBlock(sender, msg.key);
+            await respondToThreat(jid, msg.key, sender);
             if (!msg.key?.fromMe && recordBurst(sender) >= config.burstThreshold) {
                 await escalate(sender, jid);
             }
