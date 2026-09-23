@@ -42,6 +42,11 @@ Panggil setelah socket dibuat. `guard.stop()` melepas hook.
 | `guardOutgoing` | `true` | Sanitize pesan keluar (membungkus `sock.sendMessage`; melempar error bila payload berbahaya) |
 | `blockOnBug` | `false` | Blok pengirim (`updateBlockStatus`) saat pesan bug diterima (bukan dari kita) |
 | `selfOnly` | `false` | Hanya jaga chat nomor sendiri |
+| `burstThreshold` | `2` | Jumlah pesan bug dari pengirim sama (dalam `burstWindowMs`) untuk memicu eskalasi |
+| `burstWindowMs` | `60000` | Jendela waktu penghitungan burst |
+| `kickOnBurst` | `true` | Saat eskalasi di grup, keluarkan pengirim (butuh bot admin) |
+| `leaveGroupOnBurst` | `false` | Kalau kick gagal (bot bukan admin), keluar dari grup |
+| `cooldownMs` | `15000` | Redam log/callback berulang dari chat yang sama saat burst |
 | `ownJid` | `sock.user.id` | JID nomor sendiri |
 | `thresholds` | `{}` | Timpa ambang deteksi (lihat `ANTIBUG_DEFAULTS`) |
 | `onDetect` | `null` | Callback saat bug terdeteksi |

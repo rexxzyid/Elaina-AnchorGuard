@@ -85,6 +85,31 @@ test('guard menghapus pesan masuk yang bug', async () => {
     assert.equal(blocked, '123@s.whatsapp.net')
 })
 
+test('circuit-breaker: burst 2x memicu blokir + kick', async () => {
+    const blocked = []
+    const kicked = []
+    let deleted = 0
+    const mock = {
+        user: { id: '62me@s.whatsapp.net' },
+        ev: { h: {}, on(e, f) { this.h[e] = f }, off() {} },
+        sendMessage: async (j, c) => { if (c?.delete) deleted++ },
+        chatModify: async () => { deleted++ },
+        updateBlockStatus: async (j) => { blocked.push(j) },
+        groupParticipantsUpdate: async (j, p, a) => { if (a === 'remove') kicked.push(...p) },
+        groupLeave: async () => {}
+    }
+    createAntiBugGuard(mock, { kickOnBurst: true, burstThreshold: 2 })
+    const gjid = '120363x@g.us'
+    const atk = '628spam@s.whatsapp.net'
+    const mk = () => ({ messages: [{ key: { remoteJid: gjid, participant: atk, fromMe: false, id: Math.random().toString() }, message: { conversation: 'x\u0000\u0000' } }] })
+    await mock.ev.h['messages.upsert'](mk())
+    assert.equal(blocked.length, 0)
+    await mock.ev.h['messages.upsert'](mk())
+    assert.deepEqual(blocked, [atk])
+    assert.deepEqual(kicked, [atk])
+    assert.ok(deleted >= 2)
+})
+
 test('guard memblok pesan keluar yang bug', async () => {
     const mock = { user: { id: '62@s.whatsapp.net' }, ev: { on() {}, off() {} }, sendMessage: async () => ({}) }
     createAntiBugGuard(mock, { guardIncoming: false })
