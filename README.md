@@ -58,7 +58,8 @@ if (flagged) console.log('bug:', reasons)
 
 ## Vektor crash yang ditangkap
 
-- Flood karakter **combining** (`̀`…) dan **invisible/zero-width/RTL override**
+- **Control / null bytes** (`\u0000`, C0/C1) — vektor crasher paling umum
+- Flood karakter **combining** (`̀`…) dan **invisible/zero-width/hair-space/RTL override** (` `–`‏`, `⠀`, hangul filler, dll)
 - Teks / caption **raksasa** dan **newline** berlebih
 - **Bom mention** (`mentionedJid` / `groupMentions` sangat banyak)
 - `nativeFlowMessage` / `listMessage` / `carouselMessage` dengan tombol/section/row/card berlebih

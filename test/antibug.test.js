@@ -57,6 +57,17 @@ test('cycle sejati ditandai, shared-ref tidak', () => {
     assert.equal(detectBug({ extendedTextMessage: { text: 'a', contextInfo: ci }, x: ci }).flagged, false)
 })
 
+test('null byte / control char ditandai (Atomic Crasher vector)', () => {
+    assert.equal(detectBug({ conversation: 'hai\u0000\u0000\u0000' }).flagged, true)
+    assert.equal(detectBug({ conversation: 'a\u0007\u001Fb' }).flagged, true)
+    assert.equal(detectBug({ extendedTextMessage: { text: 'Halo 😊 apa kabar' } }).flagged, false)
+})
+
+test('flood hair-space / zero-width ditandai', () => {
+    assert.equal(detectBug({ conversation: 'x' + ' '.repeat(1000) }).flagged, true)
+    assert.equal(detectBug({ extendedTextMessage: { text: '‌'.repeat(2000) } }).flagged, true)
+})
+
 test('guard menghapus pesan masuk yang bug', async () => {
     let deleted = null
     let blocked = null
