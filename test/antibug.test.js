@@ -110,6 +110,26 @@ test('circuit-breaker: burst 2x memicu blokir + kick', async () => {
     assert.ok(deleted >= 2)
 })
 
+test('group guard: nomor Meta AI yang di-add ke grup di-kick', async () => {
+    const kicked = []
+    const blocked = []
+    const mock = {
+        user: { id: '62me@s.whatsapp.net' },
+        ev: { h: {}, on(e, f) { this.h[e] = f }, off() {} },
+        sendMessage: async () => ({}),
+        chatModify: async () => ({}),
+        updateBlockStatus: async (j) => { blocked.push(j) },
+        groupParticipantsUpdate: async (j, p, a) => { if (a === 'remove') kicked.push(...p) },
+        groupLeave: async () => {}
+    }
+    createAntiBugGuard(mock, {})
+    const g = '120363x@g.us'
+    await mock.ev.h['group-participants.update']({ id: g, author: '628jahat@s.whatsapp.net', action: 'add', participants: ['13135550002@s.whatsapp.net', '628normal@s.whatsapp.net'] })
+    assert.deepEqual(kicked, ['13135550002@s.whatsapp.net'])
+    await mock.ev.h['group-participants.update']({ id: g, author: 'x', action: 'add', participants: ['628member@s.whatsapp.net'] })
+    assert.equal(kicked.length, 1)
+})
+
 test('guard memblok pesan keluar yang bug', async () => {
     const mock = { user: { id: '62@s.whatsapp.net' }, ev: { on() {}, off() {} }, sendMessage: async () => ({}) }
     createAntiBugGuard(mock, { guardIncoming: false })

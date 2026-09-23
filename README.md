@@ -47,6 +47,14 @@ Panggil setelah socket dibuat. `guard.stop()` melepas hook.
 | `kickOnBurst` | `true` | Saat eskalasi di grup, keluarkan pengirim (butuh bot admin) |
 | `leaveGroupOnBurst` | `false` | Kalau kick gagal (bot bukan admin), keluar dari grup |
 | `cooldownMs` | `15000` | Redam log/callback berulang dari chat yang sama saat burst |
+| `guardGroupAdds` | `true` | Pantau `group-participants.update` (aksi add) |
+| `autoKickBadAdds` | `true` | Kick otomatis nomor berbahaya yang di-add ke grup (butuh bot admin) |
+| `metaAiNumbers` | `true` | Anggap nomor Meta AI (`1313555…`) sebagai add berbahaya |
+| `addWatchlist` | `[]` | Nomor tambahan yang otomatis di-kick saat di-add |
+
+### Anti spam-add (grup)
+
+Serangan umum: seseorang nge-add nomor **Meta AI** (`+1 313 555-xxxx`) beramai-ramai ke grup untuk memicu restriksi/ban grup. Guard memantau event penambahan anggota; kalau yang di-add adalah nomor Meta AI atau ada di `addWatchlist`, ia **langsung kick** (jika bot admin) dan — kalau penambahnya mengulang sampai ambang `burstThreshold` — **blokir + kick penambahnya**. Anggota normal yang di-add tidak tersentuh.
 | `ownJid` | `sock.user.id` | JID nomor sendiri |
 | `thresholds` | `{}` | Timpa ambang deteksi (lihat `ANTIBUG_DEFAULTS`) |
 | `onDetect` | `null` | Callback saat bug terdeteksi |
